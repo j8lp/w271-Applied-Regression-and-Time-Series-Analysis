@@ -1,0 +1,176 @@
+---
+title: 'Applied Regression and Time Series Analysis (2016 Fall): HW2 - Week 4'
+author: "Jeffrey Yau"
+date: "September 17, 2016"
+output: pdf_document
+---
+
+
+* $\textbf{Due: 10/9/2016 (11:59pm PST)}$
+
+# Overview:
+Use the dataset, housePrice.Rdata, a very simple dataset, for this exercise. It contains only few variables.
+Consider the following scenario. You work in the strategic data science team supporting the executive management team of your company. This team has the mandate to provide data- and analytic-drive recommendations to guide corporate strategies and decisions. The company's management team is considering buying residential properties in the areas near the corporate headquarter to accomodate its remote employees traveling to the headquarter for long-term (i.e. more than 4 weeks) projects.
+Specifically, the management want to understand the local housing market and how selected characteristics of a house affects its price. Your job in this assignment is to build different linear regression models to answer various questions (to be specified below) asked by the management.
+
+# Description of the Data:
+The file $\textbf{birthweight\_w271.Rdata}$ contains data from the $\textit{1988 National Health Interview Survey}$, which is modified by the instructor.  This survey is conducted by the U.S. Census Bureau and has collected data on individual health metrics since 1957.  Like all surveys, a full analysis would require advanced techniques such as those provided by the R survey package.  For this homework, however, you are to treat the data as a true random sample.  You will use this dataset to practice interpreting OLS coefficients.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dtplyr)
+library(Hmisc)
+rm(list = ls())
+
+```
+
+
+##1. Question 1 - The Usual (Part I):
+
+### a. Load the data housePrie.Rdata
+
+```{r}
+load('housePrice.rdata')
+
+```
+
+### b. Examine the structure of the data
+```{r}
+sapply(data,class)
+```
+
+### c. Provide descriptive statistics of the data
+```{r}
+describe(data)
+```
+
+### d. Identify if there are unreasonable values, top-coding, and bottom-coding. If any of these is found, propose your strategy to handle them.
+
+None of the variable values seem unreasonable, top coded, or bottom coded.  There's a suspicious outlier though in lotsize (with 92681 lotsize):
+
+```{r}
+data[data$lotsize == 92681,]
+```
+
+While this value does not it in with the rest of the data, it's still plausible.  I'm going to leave it as is.
+ 
+##2. Question 2 - The Usual (Part II):
+
+
+  * **Conduct EDA, including both univariate and multivariate analyses, on this dataset.** 
+
+```{r}
+EDA = function(data){
+  print("Summary")
+print (summary(data))
+
+library(reshape2)
+library(ggplot2)
+d <- melt(data)
+print("")
+print("Histograms of each variable")
+ print(ggplot(d,aes(x = value)) + 
+    facet_wrap(~variable,scales = "free_x") + 
+    geom_histogram())
+ 
+print("")
+print("Plots of data (only metric columns)")
+plot(data[0:5])
+ 
+}
+EDA(data)
+```
+
+
+  * **For each of the variables, discuss potential feature engineering (i.e. transformation of original variables, creation of a categorical variable from a numeric variable, creation of interaction among variables, etc) you may perform in later regression model building steps.**
+  
+    * Since *price* and *assess* are highly correlated, we could respecify the model to only capture *price* and the difference between *price* and *assess*.
+  * *bdrms* is technically a numeric variable, but since there aren't many unique values it takes on, we may want to consider treating it as ordinal and transforming it as such.
+  * *lotsize* and *sqrtft* are also pretty well correlated with *price* and *assess*, so it may be helpful to regress *price* on each and then replace each variable in the original regression with its residual.
+  * *colonial* is fine the way it is.
+
+#3. Build a regression model using price as the response variable and sqrft, bdrms, lotsize as explanatory variables. That is, a linear regression model of the following specification:
+
+$$ price = \beta_0 + \beta_1 sqrft + \beta_2 bdrms + \beta_3 lotsize + \epsilon $$
+
+* **Interpret the coefficient estimates**
+
+```{r}
+model = lm(price ~ sqrft + bdrms + lotsize,data)
+summary(model)
+```
+
+* The coefficient on *sqrft* means that you'd expect two otherwise equal houses to be priced $120 more per unit difference in square feet
+* The coefficient on *bdrms* means that you'd expect two otherwise equal houses to be priced $13000 more per difference in number of bedrooms
+* The coefficient on *lotsize* means that you'd expect two otherwise equal houses to be priced $2 more per unit difference in lot size square feet
+
+* **Respecify the model to use log(price) as the dependent variable. Interpret the coefficient estimate associated with the variable bdrms.**
+
+```{r}
+model = lm(lprice ~ sqrft + bdrms + lotsize,data)
+summary(model)
+
+```
+
+* The coefficient on *sqrft* means that you'd expect two otherwise equal houses to be priced .036% more per unit difference in square feet
+* The coefficient on *bdrms* means that you'd expect two otherwise equal houses to be priced 2.5% more per difference in number of bedrooms
+* The coefficient on *lotsize* means that you'd expect two otherwise equal houses to be priced .00056% more per unit difference in lot size square feet
+
+#For all of the questions below, use log(price) as the dependent variable.#
+
+#4. The management suspects that colonial-style properties (variable colonial = 1) have higher prices. Respecify the regression above and re-estimate the regression model to address this particular question raised by the management. Intrepret the coefficient(s) of interest.
+
+```{r}
+
+model = lm(lprice~colonial,data)
+summary(model)
+
+```
+ 
+Management is correct.  Colonial houses are on average about 12% higher priced than non-colonial houses 
+
+##5. The management suspects that the effect of the number of bedrooms on price is nonlinear. Respecify the regression above and re-estimate the regression model to address this particular question raised by the management. Note that there are a few ways to capture nonlinear effect. You are asked to experiment to at least 2 approaches to capture the nonlinear effect. Note also that this question is slightly open-ended. So, please explain your approach and the results clearly.
+
+Since we are trying to predict log of price, we aren't in the the position to observe a linear relationship between price and number of bedrooms.  However, we can check if there is a linear relationship between log of price and number of bedrooms.
+
+First approach: Transform *bdrms* to ordinal indicator variables and compare new model to old model
+
+```{r}
+model1 = lm(lprice ~ sqrft + bdrms + lotsize,data)
+summary(model1)
+```
+
+The p value for the *bdrms* coefficient is not significant, so that implies there is no linear relationship.
+
+Next lets transform bdrms to an ordinal variable and compare the two models:
+
+```{r}
+bdrms2 = data$bdrms > 2
+bdrms3 = data$bdrms > 3
+bdrms4 = data$bdrms > 4
+bdrms5 = data$bdrms > 5
+bdrms6 = data$bdrms > 6
+model2 = lm(lprice ~ sqrft + bdrms + bdrms2 + bdrms3 + bdrms4 + bdrms5 + bdrms6  + lotsize,data)
+summary(model2)
+anova(model1,model2)
+
+
+
+```
+ 
+Since the p value is significant, the model with the ordinal variables is a better fit than the model without the ordinal variables, which implies again that there is a nonlinear effect between number of bedrooms and log of price.
+
+#6. The management suspects that the effect of the number of bedrooms on price depends the size of house in square feet (i.e. sqrft).  Respecify the regression above and re-estimate the regression model to address this particular question raised by the management. Does management's "intuition" about the price effect of the number of bedrooms and house size correct? Please explain your answer.
+
+To test this, let's create an interaction term for *bdrms* and *sqrft*:
+
+```{r}
+bdrmssqrft = data$bdrms * data$sqrft
+model2  = lm(lprice ~ sqrft + bdrms + lotsize + bdrmssqrft,data)
+summary(model2)
+anova(model1,model2)
+
+```
+
+So the coefficient on the interaction term is not significant, and the model with the interaction term is not significantly better than the original model.  Therefore, there is no evidence to support the intuition that *sqrft* affects the coefficient of *bdrms*

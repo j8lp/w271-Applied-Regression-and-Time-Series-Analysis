@@ -1,0 +1,59 @@
+---
+title: "Week 8: Time Series Analysis Lecture 1"
+author: "Jeffrey Yau and Devesh Tiwari"
+date: "October18, 2016"
+output: pdf_document
+---
+
+# Agenda
+
+1. Recap of the main topics covered this week (10 minutes)
+2. Break out groups (10 minutes total - 5 minutes break out)
+3. Simulation and discussion of some fundamental time series models (40 minutes)
+4. Problems with OLS in Time Series Analysis (25 minutes)
+
+
+## 1. Recap of the main topics covered this week (10 minutes)
+
+1. In this week, I introduced the motivation of time series analysis by first talking about a few examples from different fields, including public sector, meteorology, business, and higher education, that use time series analysis.
+
+2. I also introduced basic (but essential) terminology and fundamental concepts of time series analysis. 
+    - These are important concepts that we have to 
+
+3. Exploratory time series data analysis
+    - As we did in the first half of the course, exploratory data analysis is an essential step in model development. However, time series data come with a very different stochastic structure than cross-section data; as such, the techniques such in EDA are also very different.
+
+4. A few elementary and fundamental time series models
+    - We begin our time series modeling with the building blocks of the time series models we will study in this course, covering the simplest (and yet important) types of time series models.
+
+5. Time series simulation
+    - Simulation offers a very powerful and simple way to learn about the empirical characteristics and patterns of the realizations of a specific stochastic process.
+
+**Required Readings:**
+
+  - CM2009: Ch.1, Ch.4.2.1 - 4.2.3, Ch.4.3.1- 4.3.2
+  - W2012 : Ch10.1, 12.1-2
+
+## 2. Break out groups (15 minutes total - 5 minutes break out)
+
+Separate into groups to discuss time series analysis you either use in your work or you come across in your day to day life.
+
+I will ask individuals to share examples from your discussion. In your discussion, you should first define what is a time series. Is the followind data matrix a time series? Or, can you tell?
+
+\begin{displaymath}
+\mathbf{X} = \begin{bmatrix}
+y_1 & x_{1,1} & \cdots & x_{k,1}\\ 
+\vdots & \vdots & \vdots \\ 
+y_n & x_{1,n} & \cdots & x_{k,n}\\ \end{bmatrix}
+\end{displaymath}
+
+## 3. Simulation and discussion of some fundamental time series models (40 minutes total; Breakout room: 25 minutes)
+
+For each of the following series, (1) simulate 100 realizations, (2) plot the time-series plot, histogram of each series, and maybe even boxplots (where appropriate) and (3) discuss all of its properties (in terms of trends, dependency, fluctuation) and explain where are these properties displayed in each of the graphs.
+
+1. Simulate a white noise series
+2. Simulate a 5-point (i.e. 2 before and 2 after the center) symmetric moving-average series.
+3. a zero-mean AR(1) Series with the AR coefficient being $0.7$
+4. A random walk without drift
+5. A random walk with drift = $0.2$
+

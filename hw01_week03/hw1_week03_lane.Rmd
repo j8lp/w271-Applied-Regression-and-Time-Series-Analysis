@@ -1,0 +1,151 @@
+---
+title: 'DataSci 271: Exercise 1'
+output: pdf_document
+date: "September 18, 2016"
+---
+
+
+The file birthweight_w271.Rdatabirthweight_w271.Rdata contains data from the 1988 National Health Interview Survey 1988 National Health Interview Survey, which is modified by the instructor. This survey is conducted by the U.S. Census Bureau and has collected data on individual health metrics since 1957. Like all surveys, a full analysis would require advanced techniques such as those provided by the R survey package. For this homework, however, you are to treat the data as a true random sample. You will use this dataset to practice interpreting OLS coefficients.
+
+##Exercises
+
+##Question 1: Examine the basic structure of the data
+Load the birthweight dataset. * Examine the basic structure of the data set. RR functions such as desc, str, summarydesc, str, summary may be useful. * Describe the number of variables and observations in the data. * Examine if there are any missing values in each of the variables.
+
+```{r echo="false",results="hide"}
+library(dtplyr)
+library(Hmisc)
+rm(list = ls())
+load('birthweight_w271.rdata')
+
+```
+
+```{r}
+summary(data)
+describe(data)
+```
+
+##Question 2: Exploratory Data Analysis (EDA)
+As we mentioned in the live session, it is important to start with a question (or a hypothesis) when conducting regression modeling. In this execrise, we are in the question: "Do mothers who smoke have babies with lower birth weight?"
+
+The dependent variable of interested is bwght, representing birthweight in ounces. Examine this variable using both tabulated and graphical summaries.
+
+\begin{enumerate}
+  \item Summarize the variable \textit{bwght}: $summary(data\$bwght)$
+  \item You may also use the quantile function: $quantile(data\$bwght)$. List the following quantiles: 1\%, 5\%, 10\%, 25\%, 50\%, 75\%, 90\%, 95\%, 99\%
+  \item Plot the histogram of \textit{bwght} and comment on the shape of its distribution. Try different bin sizes and comment how it affects the shape of the histogram. Remember to label the graph clearly. You will also need a title for the graph.
+  \item This is a more open-ended question: Have you noticed anything "strange" with the \textit{bwght} variable and the shape of histogram this variable? If so, please elaborate on your observations and investigate any issues you have identified.
+   \item Is the variable skewed?
+ \item Does the variable have extreme values or values that seem unreasonable?
+  \item Does the variable appear to be top- or bottom-coded?
+\end{enumerate}
+```{r}
+EDA = function (d, label){
+print("Summary")
+print (summary(d))
+print("Quantiles")
+print(quantile(d, probs=c(0.01, 0.05, .1, .25, .5, .75, .9, .95, .99)))
+
+hist(d, breaks=40, main=paste("Histogram of",label), xlab=label)
+
+}
+EDA(data$bwght,"birthweight")
+```
+
+*The bwght variable is not skewed nor does it appear to be top or bottom coded.  However, it's unusual that there are so many observations with 0 birthweight.  There's also one outlier on the other end of the graph at 271.  These must be incorrectly recorded observations*
+ 
+ 
+The key explanatory variable of interest is cigs, which represents number of cigarettes smoked each day by the mother while pregnant. Conduct the same EDA analysis as that of the dependent variable.
+
+```{r}
+EDA(data$cigs,"cigarettes")
+
+
+```
+
+*This variable is skewed towards the left, as more than 75% of the respondents reported 0.  This variable may have been bottom coded, as I it's possible that the 0 value represents both mothers who don't smoke and mothers who smoke less than one cigarette a day on average (for example, maybe the smoke three times a week).  The high values like 30 and 40 appear to appear to be somewhat extreme, but not impossible*
+
+After conducting the univariate analysis of both the dependent variable and the explanatory variable of interest, examine the relationship between the dependent variable and explanatory variable of interest. In this simple case, we only examine the dependent variable and one explanatory variable. 
+
+Start with generating a scatterplot of \textit{bwght}} against \textit{cigs}. Based on the appearance of this plot, how much of the variation in bwght do you think can be explained by \textit{cigs}? Do the relationship appear to be linear?
+
+*Based on the plot, I doubt that cigs will be able explain much of the variation in bwght.  Not only is the linear relationship weak, but cigs just does not have much variation in it.*
+
+```{r}
+
+plot(data$cigs, data$bwght)
+abline(lm(data$bwght~ data$cigs))
+```
+
+*The relationship does not appear to be linear.  In fact, there does not seem to be a relationship at all.  The trend line is slightly negative, but there is too much variance and not enough data at higher cig levels to actually see a relationship*
+
+##Question 3: Build a Simple Linear Regression Model
+
+Estimate the simple linear regression of \textit{\textit{bwght}} on cigs. That is, we enter the explanatory variable as its raw form. What coefficient estimates and the standard errors associated with the coefficient estimates do you get? Interpret the results.
+```{r}
+m <- lm(bwght ~ cigs, data = data[data$bwght>0,])
+summary(m)
+```
+
+*The p value for cigs is statitically signficant, so there appears to be some relationship between cigarettes smoked each day and birthweight.  It looks to be a slightly negative one, since the coefficient on cigs is negative.  The standard error is relatively large compared to the coefficient, but not so large that one would doubt the sign of the coefficient.*
+
+However, do you think it a simple linear regression of \textit{bwght} on \textit{cigs} in their raw forms is an appropriate way to capture the effect of cigarettes smoked per day during pregnant on child birthweight? If not, please explain. You don't have to build another regression. Note: I have to emphasize again that we have not yet used the insights we generated from the EDA in specify the regression function. We will do so in week 5 when we learn about variable transformation and featuere engineering in general.
+
+*To capture the effect of cigarettes on birthweight, one needs to run an actual experiment where mothers are given either real or "placebo" cigarettes to smoke.  A regression alone does not indicate causality.*  
+
+
+##Question 4: Regression Diagnostic
+Conduct regression diagnostic of the above model. Try to use each of the diagnostic plots to "examine" the underlying assumptions of the Classical Linear Regression Models. Note that I use the term "examine" rather than "test" because regression diagnostic is a diagnostic tool and not a formal statistical testing, but they are extremely useful and should be a part of any regression model building process. Interpret each of your graphs and comments on whether the corresponding underlying assumptions make sense.
+
+```{r}
+library(car)
+print("Durbin Watson")
+durbinWatsonTest(data$bwght)
+plot(m)
+```
+
+*Since there is only one explanatory variable, we don't need to worry about collinearity.*
+*The Durbin Watson test is not statistically significant, so we can accept the null that this data is a random sample*
+*The residuals vs fitted graph shows that the expected error is 0 for almost all values of the explanatory variable.  Although the expected error goes positive for the lower values of bwght, this may just be because there is not as much data in this area.*
+
+
+##Question 5: Multiple Linear Regression
+Despite child birth weight could be a function of mother's smoking behavior during pregnancy, other factors may influence child birth weight. As an exercise, let's introduce a new explanatory variable, \textit{faminc}, representing family income in thousands of dollars and is serving as a proxy of other variables not captured in the model. Examine this variable (as well as its relationship with other variables in the model) using the same EDA as above. Note: In general, we will attempt multiple regression model specifications, test each one of them, and conduct model selection. We will study this between week 5 and 7.
+
+```{r}
+EDA(data$faminc,"family income")
+plot(data$cigs,data$faminc, main=paste("Family Income versus Cigs"))
+plot(data$bwght,data$faminc, main=paste("Family Income versus Birthweight"))
+
+```
+
+
+*The faminc variable is skewed right, and I suspect that there must be some data quality issues.  I initially thought that the faminc variable must have been top coded, but the fact that there are no mothers between 50 and 60 thousand suggests that the skew is probably a result of incorrect recording.*
+
+*There appears to be a somewhat negative relationship between cigarettes smoked per day and family income.  But it's not perfect collinearity, so we can still use linear regression.* 
+
+
+Regress \textit{bwght} on both \textit{cigs} and \textit{faminc}. What coefficient estimates and the standard errors associated with the coefficient estimates do you get? Interpret the results. Again, we will study model specification in week 55. For now, just focus on the interpretation of the model results.
+
+```{r}
+m <- lm(bwght ~ cigs + faminc, data = data[data$bwght>0,])
+summary(m)
+```
+
+
+Explain, in your own words, what the coefficient on \textit{cigs} in the multiple regression means, and how it is different than the coefficient on \textit{cigs} in the simple regression? Please provide the intuition to explain the difference, if any.
+
+*The coefficient on cigs is the amount we can expect birthweight to decrease if a mother starts smoking one more cigarette a day, holding everything else constant.  It's not as large in magnitude as the coefficient from the previous regression because some of the variation in birthweight is no explained by family income.*
+
+##Question 6: Regression Diagnostic
+Conduct regression diagnostic of the above model.
+
+
+```{r}
+library(car)
+print("Durbin Watson")
+durbinWatsonTest(data$faminc)
+plot(m)
+```
+
+*Neither faminc nor cigs show serial correlation according to the Durbin Watson test, so we can asume that they come from random samples.  We also already showed in a previous problem that faminc and cigs are not perfectly collinear.  Finally, the residuals vs fitted graph still shows that there is still no significant relationship between the values of the explanatory variables and the error.*
