@@ -1,0 +1,153 @@
+---
+title: "Homework 7 and 8 - Weeks 9 and 10"
+author: "Jeffrey Yau and Devesh Tiwari"
+date: "November 20, 2016"
+output: pdf_document
+---
+
+## Instructions:
+The weekly assignment serves two purposes: (1) Review concepts, techniques, theories, statistical models covered during the week. (2) Extend the materials taught in the asynchronized lectures, assigned readings, and live sessions; some new concepts and/or techniques are introduced in the weekly assignment.  
+
+Below are specific instructions:
+
+* $\textbf{Due: 11/20/2016 (11:59pm PST)}$
+
+* Late submission will not be accepted.
+
+* You may complete this assignment on your own or in a group of no more than $3$ students.
+
+* When working in a group, you are strongly encouraged to complete the assignment on your own before discussing your group mates. Do not use the "division-of-labor" approach to complete the assignment.
+
+* The homework is designed as a quantitative analysis. The instructions and questions are designed to guide you through the analysis of data using regression techniques. As such, you should think of it as a quantitative case study and the result of the study is a report with a set of well-written codes that can be used to reproduce the results in the report.
+
+* Submission:
+    * Submit your own assignment via ISVC. Email submission will not be accepted and graded.
+    * Submit 2 files:
+        1. R-script or R markdown file
+        2. A pdf file including the summary, the details of your analysis, and all the R codes used to produce the analysis
+    * Fail to do so will automatically receive a 50% reduction in grade
+    * Each group only needs to submit one set of files
+    * Use the following file naming convensation; fail to do so will receive 10% reduction in the grade:
+        * $\textbf{SectionNumber\_hw06\_LastNameFirstInitial.fileExtension}$
+        * Examples: 
+            * Section1_hw06_YauJ.Rmd
+            * Section1_hw06_YauJ.pdf
+            * Section1_hw06_TiwariD_YauJ.Rmd
+            * Section1_hw06_TiwariD_YauJ.pdf
+    * Not following the naming conversation will receive a 20% reduction in grade.
+
+
+* \color{red} DO NOT copy and paste or even leverage on the solutions we gave to the students in previous semesters. Violation will be reported to the Director of the MIDS program and the Office that oversees \href{https://teaching.berkeley.edu/academic-integrity}{UC Berkeley Academic Integrity}. In any case, the homework has various subtle changes that make those answers not directly applicable.
+
+
+
+\newpage
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dtplyr)
+library(Hmisc)
+library(astsa)
+library(xts)
+library(readr)
+library(car)
+rm(list = ls())
+DEXUSEU_weekly <- read_csv("DEXUSEU_weekly.csv",  col_types = cols(DATE = col_date(format = "%Y-%m-%d")))
+```
+
+
+## 1 Pre-Anlaysis:
+Examine the series: Load the given series and examine the series. What frequence is the series (please show it in R, not Excel)? What are the start and end of the series? Are there any missing values?
+
+```{r}
+#Convert dataframe to time series
+tdata = xts(DEXUSEU_weekly$DEXUSEU,DEXUSEU_weekly$DATE)
+summary(tdata)
+paste("Frequence of series:",deltat(tdata))
+paste("Missing dates:",is.regular(tdata,strict=TRUE))
+plot.ts(tdata)
+
+```
+
+
+
+
+## 2 Using data frame: 
+What are the pros and cons of using data frame to analyze time series?
+
+*The pros are that you can treat both time and value as variables, whereas in a time series, you treat only value as a variable.  The cons are that you need to be careful when using other time series analysis packages in R that are expecting time series data*
+
+## 3 Subsetting the series: 
+For the rest of the analysis, include only the data in 2015 and 2016, excluding the last 6 data points in the series.
+
+```{r}
+tdata = xts(DEXUSEU_weekly$DEXUSEU,DEXUSEU_weekly$DATE)
+tdata = tdata["2015/2016"]
+tdata = head(tdata,nrow(tdata)-6)
+```
+
+
+## 4 Graphical Analysis: 
+Produce the time series plot of the series. Comment on the plot. Does it (or does it
+not) look like it can be modeled using the autoregressive model?
+```{r}
+plot(tdata,main="Plot of DEXUSEU_weekly between 2015 and 2016", ylab="DEXUSEU")
+```
+
+*The plot looks like it could be modeled with an AR model.  Except for the period between January and February 2015, the series seems to have a consistent mean and variance.  Throughout the series, there appears to be some persistence*  
+
+## 5 Dependency Strucutre: 
+Plot the ACF and PACF graphs. Comment on these graphs. Does it “look like” a stationary series? Define (weak) stationarity. Does it (or does it not) look like it can be modeled using theautoregressive model?
+
+```{r}
+acf(tdata)
+pacf(tdata)
+```
+*It looks like it could be stationary autoregressive model.  The ACF graph decays slowly over time, and PACF graph drops off after the first lag.  However, both graphs show a a statistically signiicant negative correlation occurring well after the correlations should have dropped off.  In ACF it happens at around lag 70 while in PACF it happens at around lag 130.  This may indicate some form of seasonality or drift, but it could also just be noise*
+
+*Weak stationarity is when a series has stationary mean, variance, and autocovariance.  Stationary autocovariance means that the autocovariance two points is only dependent on the lag between those two points*
+
+## 6 Estimation: 
+Estimate an AR model using the ar() function.
+```{r}
+model = ar(as.ts(tdata), method="mle")
+summary(model)
+```
+
+## 7 Model “Selection”: 
+Which model is selected based on the AIC? What does AIC measure? What are the pros and cons of using AIC to select model.
+
+*The model that has the best fit with the least amount of parameters will be selected.  The AIC measures the log of the mean squared error plus the number of parameters used to fit each observation.  Using the AIC to select a model reduces the risk of over-fitting, but it also means you might not get the model with the actual best fit.  For example, you may esimate an AR(3) model for a series that is actually AR(4)*
+
+## 8 Model Diagnostic: 
+Plot the residuals of the estimated model. Comment on the plot. Does it resemble a white noise series? What do you expect a white noise series to look like?
+
+
+```{r}
+plot(model$resid, type="l", main="Residuals: t-plot")
+
+```
+
+*It resembles a white noise series.  I'd expect a white noise series to have a stationary mean of zero and to have stationary variance, with no autocorrelation.*
+
+## 9 Inference: 
+Compute the 95% confidence intervals of the parameter estimates. Explain the results.
+
+```{r}
+model$ar + c(-2,2)*sqrt(model$asy.var)
+
+```
+
+*This interval shows that that we are 95% confident that the true value for this parameter is between .922 and -.056*
+
+## 10 Forecasting: Produce a 6 steps ahead forecast. Explain your results. How well is your forecast compare relative to the actual values of data (i.e. that last 6 data points that you left out.)
+
+```{r}
+forecasted <- predict(model, n.ahead=6)
+  plot(forecasted$pred, main="Estimated Series",
+     xlab="Time", ylab="Predicted Value",
+     xlim=c())
+  plot( tail(xts(DEXUSEU_weekly$DEXUSEU,DEXUSEU_weekly$DATE),6),main="Actual Series",xlab="Time")  
+```
+
+*The forecast is pretty accurate, correctly predicting the downward trend.  However, it didn't predict as steep a slope as the actual series*
